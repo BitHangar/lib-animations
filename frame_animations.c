@@ -38,9 +38,10 @@ Layer* destinationLayer;
 
 // Initialize layer to be used for animating, and put it on top of the destination layer.
 void frame_animation_init(FrameAnimation *animation, Layer *destination, GPoint position, 
-		int first_resource_id, int num_frames, bool is_transparent) {
+		int first_resource_id, int num_frames, bool is_transparent, bool starts_hidden) {
 
 	// General initialization for FrameAnimation struct
+	animation->startsHidden = starts_hidden;
 	animation->isTransparent = is_transparent;
 	animation->firstResourceId = first_resource_id;
 	animation->resourceCounter = first_resource_id;
@@ -59,6 +60,8 @@ void frame_animation_init(FrameAnimation *animation, Layer *destination, GPoint 
 		bitmap_layer_init(&animation->secondLayer, animation->transparentImageContainer.layer.layer.frame);
 		bitmap_layer_set_compositing_mode(&animation->firstLayer, GCompOpOr);
 		bitmap_layer_set_compositing_mode(&animation->secondLayer, GCompOpClear);
+		bitmap_layer_set_bitmap(&animation->firstLayer, &animation->transparentImageContainer.white_bmp);
+		bitmap_layer_set_bitmap(&animation->secondLayer, &animation->transparentImageContainer.black_bmp);
 
 		layer_add_child(&animation->animationLayer, &animation->firstLayer.layer);
 		layer_add_child(&animation->animationLayer, &animation->secondLayer.layer);
@@ -69,12 +72,13 @@ void frame_animation_init(FrameAnimation *animation, Layer *destination, GPoint 
 		layer_init(&animation->animationLayer, GRect(position.x, position.y, rect.size.w, rect.size.h));
 
 		bitmap_layer_init(&animation->firstLayer, animation->imageContainer.layer.layer.frame);
-
+		bitmap_layer_set_bitmap(&animation->firstLayer, &animation->imageContainer.bmp);
 		layer_add_child(&animation->animationLayer, &animation->firstLayer.layer);
 	}
 
 	layer_add_child(destination, &animation->animationLayer);
-	layer_set_hidden(&animation->animationLayer, true);
+	if (animation->startsHidden)
+		layer_set_hidden(&animation->animationLayer, true);
 
 	destinationLayer = destination; // grab a pointer to the main window
 
@@ -97,20 +101,7 @@ bool isRunning(FrameAnimation *animation) {
 	return animation->isAnimating;
 }
 
-
-// This function will animate from the first frame to the last, repeating if 'continuous' is true.
-void frame_animation_linear(FrameAnimation *animation, AppContextRef ctx, 
-		AppTimerHandle timer_handle, uint32_t cookie, int fps, bool continuous) {
-
-	animation->isAnimating = true; // set flag to tell if the animation is running
-
-	int num_frames = animation->numFrames; // temporary variable to store number of frames
-	if (continuous)
-		num_frames = num_frames - 1; // This is needed to prevent the frame from showing empty space
-
-	int millis_from_fps = 1000 / fps; // Get frame delay in milliseconds from desired FPS
-
-
+void show_current_frame(FrameAnimation *animation) {
 	// Show the layer before starting animation
 	layer_set_hidden(&animation->animationLayer, false);
 
@@ -127,6 +118,22 @@ void frame_animation_linear(FrameAnimation *animation, AppContextRef ctx,
 	}
 
 	layer_mark_dirty(destinationLayer); // mark the destination window dirty in order to show the next frame
+}
+
+// This function will animate from the first frame to the last, repeating if 'continuous' is true.
+void frame_animation_linear(FrameAnimation *animation, AppContextRef ctx, 
+		AppTimerHandle timer_handle, uint32_t cookie, int fps, bool continuous) {
+
+	animation->isAnimating = true; // set flag to tell if the animation is running
+
+	int num_frames = animation->numFrames; // temporary variable to store number of frames
+	if (continuous)
+		num_frames = num_frames - 1; // This is needed to prevent the frame from showing empty space
+
+	int millis_from_fps = 1000 / fps; // Get frame delay in milliseconds from desired FPS
+
+
+	show_current_frame(animation);
 
 	if (animation->frameCounter < num_frames) {
 		if (animation->isTransparent)
@@ -141,9 +148,12 @@ void frame_animation_linear(FrameAnimation *animation, AppContextRef ctx,
 		// If not continuous, we need to stop the timer and hide the layer
 		if (!continuous || animation->scheduleStop) {
 			app_timer_cancel_event(ctx, timer_handle);
-			layer_set_hidden(&animation->animationLayer, true);
 			animation->isAnimating = false;
 			animation->scheduleStop = false;
+			if (animation->startsHidden)
+				layer_set_hidden(&animation->animationLayer, true);
+			else
+				show_current_frame(animation); // Show the first frame again, then stop
 			return;
 		}
 	}
@@ -168,22 +178,7 @@ void frame_animation_alternating(FrameAnimation *animation, AppContextRef ctx,
 
 	int millis_from_fps = 1000 / fps; // Get frame delay in milliseconds from desired FPS
 	
-
-	// Show the layer before starting animation
-	layer_set_hidden(&animation->animationLayer, false);
-
-	if (animation->isTransparent) {
-		rotbmp_pair_deinit_container(&animation->transparentImageContainer);
-		rotbmp_pair_init_container(animation->resourceCounter, animation->resourceCounter+1, &animation->transparentImageContainer);
-		bitmap_layer_set_bitmap(&animation->firstLayer, &animation->transparentImageContainer.white_bmp);
-		bitmap_layer_set_bitmap(&animation->secondLayer, &animation->transparentImageContainer.black_bmp);
-	}
-	else {
-		bmp_deinit_container(&animation->imageContainer);
-		bitmap_layer_set_bitmap(&animation->firstLayer, &animation->imageContainer.bmp);
-	}
-
-	layer_mark_dirty(destinationLayer);
+	show_current_frame(animation);
 
 	// Forwards
 	if (animation->frameCounter < num_frames) {
@@ -207,9 +202,12 @@ void frame_animation_alternating(FrameAnimation *animation, AppContextRef ctx,
 		// If not continuous, we need to stop the timer and hide the layer
 		if (!continuous || animation->scheduleStop) {
 			app_timer_cancel_event(ctx, timer_handle);
-			layer_set_hidden(&animation->animationLayer, true);
 			animation->isAnimating = false;
 			animation->scheduleStop = false;
+			if (animation->startsHidden)
+				layer_set_hidden(&animation->animationLayer, true);
+			else
+				show_current_frame(animation); // Show the first frame again, then stop
 			return;
 		}
 	}

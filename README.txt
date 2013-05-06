@@ -7,7 +7,7 @@ What you'll need: Bitmap images of all the frames you want to animate; they can 
 
 Usage: If you want your animation just to run from the first frame to the last, you can use the ‘frame_animation_linear’ function. It can animate then stop, or continue on a loop. Just pass either 'true' or 'false' for the 'continuous' parameter. If you want the animation to cycle through forwards then backwards, use the  ‘frame_animation_alternating' function. That animation can keep looping or stop also. To stop a looping animation, just pass your FrameAnimation object to ‘frame_animation_stop’.
 
-In order to initialize the animation, you should use the 'frame_animation_init' function. This takes several parameters. First is a reference to the FrameAnimation object that you will use to hold your animation. This should be a global variable of type FrameAnimation in your main app. Second is a reference to the layer onto which you will put your animation layer (this is usually just &window.layer). Next is a GPoint that will be the x and y coordinates of where you want the animation to appear on the screen. The next part is very important. You’ll need a reference to the FIRST image resource you want in the animation. For a normal PNG, this will be something like ‘RESOURCE_ID_FRAME_1’. For a PNG with transparency, you’ll have to add ‘_WHITE’ to the resource name, i.e. ‘RESOURCE_ID_FRAME_1_WHITE’. Next you just specify the number of frames in your animation. Finally you’ll need to include whether or not the images you’re animating are transparent or regular PNG’s. 
+In order to initialize the animation, you should use the 'frame_animation_init' function. This takes several parameters. First is a reference to the FrameAnimation object that you will use to hold your animation. This should be a global variable of type FrameAnimation in your main app. Second is a reference to the layer onto which you will put your animation layer (this is usually just &window.layer). Next is a GPoint that will be the x and y coordinates of where you want the animation to appear on the screen. The next part is very important. You’ll need a reference to the FIRST image resource you want in the animation. For a normal PNG, this will be something like ‘RESOURCE_ID_FRAME_1’. For a PNG with transparency, you’ll have to add ‘_WHITE’ to the resource name, i.e. ‘RESOURCE_ID_FRAME_1_WHITE’. Next you just specify the number of frames in your animation. Then you’ll need to include whether or not the images you’re animating are transparent or regular PNG’s. Finally, you can select whether or not the animation object will always be shown or shown only when animating with the 'starts_hidden' parameter (True means it will only show when animating, False means it will always be visible).
 NOTE: Be sure to de-initialize your animation(s)! Simply include ‘frame_animation_deinit(&some_animation_name)’ in your ‘handle_deinit()’ implementation for all FrameAnimation objects you declare.
 
 
@@ -49,7 +49,7 @@ void handle_init(AppContextRef ctx)
 	...
 
 	layer_animation_init(&frame_animation,  &window.layer,  GPoint(10, 10), 
-		RESOURCE_ID_FRAME_1, 10, false);
+		RESOURCE_ID_FRAME_1, 10, false, true);
 
 	timer_handle = app_timer_send_event(ctx, 10, 1);
 
@@ -57,7 +57,7 @@ void handle_init(AppContextRef ctx)
 
 
 What the above will do is start the animation 10 milliseconds from when the app loads (so basically instantly). The animation itself has 10 frames at 10 frames per second (that's 100 milliseconds between frames) and will loop continuously until the app is closed or ‘frame_animation_stop()’ is called. 
-In the init, we've delcared that the animation will be stored in a FrameAnimation object called ‘frame_animation’, put the animation on the main window at coordinates (10, 10), start at frame 1, there are 10 frames, and the images have no transparency. 
+In the init, we've delcared that the animation will be stored in a FrameAnimation object called ‘frame_animation’, put the animation on the main window at coordinates (10, 10), start at frame 1, there are 10 frames, the images have no transparency, and the animation object will only be visible when animating.
 
 
 Multiple Animations: You can have more than one animation running at the same time, using the same timer handler function in your Pebble app. You also have the ability to cancel one or all of the animations currently running. So, how to do this? Say you want to have two animations running independently of each other. Simply declare two global AppTimerHandle variables in your app (not necessary, but recommended). You'll also need to declare two different FrameAnimation objects.

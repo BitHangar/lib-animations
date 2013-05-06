@@ -34,6 +34,7 @@ typedef struct FrameAnimation
 	BitmapLayer secondLayer;
 	RotBmpPairContainer transparentImageContainer;
 	BmpContainer imageContainer;
+	bool startsHidden : 1;
 	bool isTransparent : 1;
 	bool isAnimating : 1;
 	bool scheduleStop : 1;
@@ -43,7 +44,7 @@ typedef struct FrameAnimation
 	int numFrames;
 } FrameAnimation;
 
-void frame_animation_init(FrameAnimation *animation, Layer *destination, GPoint position, int first_resource_id, int num_frames, bool is_transparent);
+void frame_animation_init(FrameAnimation *animation, Layer *destination, GPoint position, int first_resource_id, int num_frames, bool is_transparent, bool starts_hidden);
 void frame_animation_linear(FrameAnimation *animation, AppContextRef ctx, AppTimerHandle timer_handle, uint32_t cookie, int fps, bool continuous);
 void frame_animation_alternating(FrameAnimation *animation, AppContextRef ctx, AppTimerHandle timer_handle,  uint32_t cookie, int fps, bool continuous);
 void frame_animation_stop(FrameAnimation *animation);
